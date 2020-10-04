@@ -5,12 +5,15 @@ using System.Threading;
 
 namespace AutomatedJMeterTester
 {
-    internal static class Program
+    static class Program
     {
+        private static int _delay;
+        
         private static void Main()
         {
             var stoppingHour = int.Parse(ConfigurationManager.AppSettings["stoppingHour"]);
-            var delay = int.Parse(ConfigurationManager.AppSettings["loopDelayInMinutes"]) * 60000;
+            _delay = int.Parse(ConfigurationManager.AppSettings["loopDelayInMinutes"]);
+            var delayInmilliseconds = _delay * 60000;
 
             var dateTime = DateTime.Now;
 
@@ -20,7 +23,7 @@ namespace AutomatedJMeterTester
             {
                 LaunchJMeterScript();
                 numberOfTestsDone++;
-                Thread.Sleep(delay);
+                Thread.Sleep(delayInmilliseconds);
             }
 
             Console.WriteLine(
@@ -31,7 +34,9 @@ namespace AutomatedJMeterTester
 
         private static void LaunchJMeterScript()
         {
-            Console.WriteLine($"Launching JMeter Test at {DateTime.Now}...");
+            var launchTime = DateTime.Now;
+            
+            WriteConsoleMessage($"Launching JMeter Test at {launchTime}...");
 
             var processInfo =
                 new ProcessStartInfo("cmd.exe", "/c " + ConfigurationManager.AppSettings["batchFileLocation"])
@@ -45,13 +50,24 @@ namespace AutomatedJMeterTester
             var process = Process.Start(processInfo);
 
             if (process == null) return;
-            
+
             process.OutputDataReceived += (sender, e) =>
                 Console.WriteLine(e.Data);
             process.BeginOutputReadLine();
 
             process.WaitForExit();
             process.Close();
+
+           launchTime = launchTime.AddMinutes(_delay);
+
+            WriteConsoleMessage($"JMeter script done! Next launch at {launchTime}");
+        }
+
+        private static void WriteConsoleMessage(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkGreen;
+            Console.WriteLine(message);
+            Console.ForegroundColor = ConsoleColor.White;
         }
     }
 }
